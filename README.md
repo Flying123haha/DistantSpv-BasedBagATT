@@ -5,7 +5,6 @@
 
 The code is written in Python 3.6 and pytorch 0.3.0.
 
-
 ## Evaluation Results
 
 ### precision/recall curves
@@ -58,7 +57,6 @@ Intra-Bag-and-Inter-Bag-Attentions
 ```
 
 3. preprocess NYT data
-
 ```
 cd preprocess; bash preprocess.sh; cd ..
 ```

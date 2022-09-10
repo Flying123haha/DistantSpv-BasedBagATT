@@ -12,9 +12,17 @@ class getEmbeddings(nn.Module):
         self.ldist_embedding.weight.data.copy_(torch.from_numpy(pf1))
         self.rdist_embedding.weight.data.copy_(torch.from_numpy(pf2))
 
-    def forward(self, x, ldist, rdist):
-        x_embed = self.x_embedding(x)
-        ldist_embed = self.ldist_embedding(ldist)
+    def forward(self, x, ldist, rdist, leftEnt, rightEnt):
+        x_embed = self.x_embedding(x)   ## [118,82] -> [118, 82, 50]
+        ldist_embed = self.ldist_embedding(ldist) ## ## [118,82] -> [118, 82, 5]
         rdist_embed = self.rdist_embedding(rdist)
-        concat = torch.cat([x_embed, ldist_embed, rdist_embed], x_embed.dim() - 1)
-        return concat.unsqueeze(1)
+        xEnt_embed = self.word_ent_embedding(x_embed, leftEnt, rightEnt)
+        Xp = torch.cat([x_embed, ldist_embed, rdist_embed], x_embed.dim() - 1)    ## [118,82, 160(50*3 +10)]
+        Xe = torch.cat([x_embed, xEnt_embed], x_embed.dim() - 1)
+        return Xp.unsqueeze(1), Xe
+
+    def word_ent_embedding(self, X, X_Ent1, X_Ent2):
+
+        X_Ent1 = self.x_embedding(X_Ent1).unsqueeze(1).expand(X.shape)  # [54] ->  [54, 82, 50]
+        X_Ent2 = self.x_embedding(X_Ent2).unsqueeze(1).expand(X.shape)
+        return torch.cat([X_Ent1, X_Ent2], -1)

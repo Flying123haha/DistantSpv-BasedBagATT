@@ -15,7 +15,7 @@ class DocumentContainer(object):
         self.sentlens = sentlens
 
 
-def get_ins(snum, index1, index2, pos, sentlen, filter_h=3, max_l=100):
+def get_ins(snum, index1, index2, pos, sentlen, filter_h=3, max_l=100):  # 对齐句子长度到max_l,规整好pf1和pf2，
     pad = int(filter_h/2)
     x = [0]*pad
     pf1 = [0]*pad
@@ -148,7 +148,7 @@ def make_test_data_12all(data, word2id, filter_h, max_l):
         newent2 = []
         newsentlen2 = []
 
-        if len(sentences) > 1:
+        if len(sentences) > 1:      ##只对sentences.len >= 2才进行处理
             index1 = np.random.choice(len(sentences), 1)
             index2 = np.random.choice(len(sentences), 2, replace=False)
             for i, sentence in enumerate(sentences):
@@ -173,15 +173,15 @@ def make_test_data_12all(data, word2id, filter_h, max_l):
             newIns = DocumentContainer(entity_pair=entities, sentences=newSent, label=rel, pos=pos, l_dist=l_dist, r_dist=r_dist, entity_pos=newent,sentlens=newsentlen)
             newIns1 = DocumentContainer(entity_pair=entities, sentences=newSent1, label=rel, pos=pos, l_dist=l_dist1, r_dist=r_dist1, entity_pos=newent1,sentlens=newsentlen1)
             newIns2 = DocumentContainer(entity_pair=entities, sentences=newSent2, label=rel, pos=pos, l_dist=l_dist2, r_dist=r_dist2, entity_pos=newent2,sentlens=newsentlen2)
-            newData += [newIns]
-            newData1 += [newIns1]
-            newData2 += [newIns2]
+            newData += [newIns]      # 所有sentences的句子
+            newData1 += [newIns1]       # 随机抽取一个的句子
+            newData2 += [newIns2]       #   随机抽取2个句子
 
     return newData, newData1, newData2
 
 def make_train_data(data, word2id, filter_h, max_l, num_classes, group_size):
     allData = [[] for _ in range(num_classes)]
-    for j, ins in enumerate(data):
+    for j, ins in enumerate(data):  ## 给每个bag的关系都获取相应的特征，并加入到同一关系(label)中
         entities = ins.entity_pair
         entities = [word2id.get(entities[0], 0)+1, word2id.get(entities[1], 0)+1]
         rel = ins.label
@@ -209,11 +209,11 @@ def make_train_data(data, word2id, filter_h, max_l, num_classes, group_size):
 
     newData = [[] for _ in range(num_classes)]
     for j, data in enumerate(allData):
-        for i, datai in enumerate(data):
-            if i % group_size == 0:
+        for i, datai in enumerate(data):     # datai为一个句子bag的特征
+            if i % group_size == 0: # 将包中的数据按照5个包放在一组中
                 newData[j].append([])
             newData[j][-1].append(datai)
-        while newData[j] != [] and len(newData[j][-1]) % group_size != 0:
+        while newData[j] != [] and len(newData[j][-1]) % group_size != 0:   #补齐最后一个组，达到5个句子
             newData[j][-1].append(newData[j][-1][-1])
     return newData
 
@@ -246,8 +246,8 @@ if __name__ == "__main__":
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     print('point 0 time: ' + '\t\t' + str(now))
 
-    train_data = make_train_data(trainData, word2id, max_filter_len, sentence_len, num_classes, group_size)
-    f = open('train.pkl', 'wb')
+    train_data = make_train_data(trainData, word2id, max_filter_len, sentence_len, num_classes, group_size)     # 将训练数据分53种关系分别存储各个包
+    f = open('train.pkl', 'wb') # ldist中"30"代表距离为0，最大为60，最小为0
     pickle.dump(train_data, f, -1)
     f.close()
 
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     pickle.dump(pretrain_data, f, -1)
     f.close()
 
-    testall_data, test1_data, test2_data = make_test_data_12all(testData, word2id, max_filter_len, sentence_len)
+    testall_data, test1_data, test2_data = make_test_data_12all(testData, word2id, max_filter_len, sentence_len)    # 处理所有句子组中数量 >= 2的句子组, tes1_data表示随机取其中的一个句子， test2_data表示随机取其中的2个句子
     f = open('testall.pkl', 'wb')
     pickle.dump(testall_data, f, -1)
     f.close()

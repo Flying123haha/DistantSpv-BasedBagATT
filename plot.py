@@ -12,10 +12,15 @@ args = parser.parse_args()
 
 plt.clf()
 
+y_true = np.load('result2/' + args.model_name + '_true.npy')
+y_scores = np.load('result2/' + args.model_name + '_scores.npy')
+precisions,recalls,threshold = precision_recall_curve(y_true, y_scores)
+plt.plot(recalls, precisions, "-b", marker="d", markevery=200, lw=1, label="ATT+SEG")
+
 y_true = np.load('result/' + args.model_name + '_true.npy')
 y_scores = np.load('result/' + args.model_name + '_scores.npy')
 precisions,recalls,threshold = precision_recall_curve(y_true, y_scores)
-plt.plot(recalls, precisions, "-b", marker="d", markevery=200, lw=1, label=args.model_name)
+plt.plot(recalls, precisions, "-r", marker="d", markevery=200, lw=1, label=args.model_name)
 
 plt.ylim([0.4, 1.0])
 plt.xlim([0.0, 0.5])

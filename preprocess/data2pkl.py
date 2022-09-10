@@ -41,7 +41,7 @@ def readData(filename, mode):
             epos = sorted(epos)
             rels.append(int(sent[4]))
             sent = f.readline().strip().split(",")
-            sentences.append([(x+1) for x in list(map(int, sent))])
+            sentences.append([(x+1) for x in list(map(int, sent))]) # 对句子中的所有都+1
             sentlens.append(len(sent))
             sent = f.readline().strip().split(",")
             ldist.append(list(map(int, sent)))
@@ -56,7 +56,7 @@ def readData(filename, mode):
     return data
 
 def wv2pickle(filename='wv.txt', dim=50, outfile='Wv.p'):
-    f = codecs.open(filename, 'r')
+    f = codecs.open(filename, 'r')  # word2vec.txt
     allLines = f.readlines()
     f.close()
     Wv = np.zeros((len(allLines)+1, dim))
@@ -67,7 +67,7 @@ def wv2pickle(filename='wv.txt', dim=50, outfile='Wv.p'):
         i += 1
     rng = np.random.RandomState(3435)
     Wv[1, :] = rng.uniform(low=-0.5, high=0.5, size=(1, dim))
-    f = codecs.open(outfile, 'wb')
+    f = codecs.open(outfile, 'wb')  # word2vec.pkl
     pickle.dump(Wv, f, -1)
     f.close()
 
@@ -79,7 +79,7 @@ def data2pickle(input, output, mode):
 
 
 if __name__ == "__main__":
-    wv2pickle('word2vec.txt', 50, 'word2vec.pkl')
-    data2pickle('bags_train.txt','train_temp.pkl',1)
+    wv2pickle('word2vec.txt', 50, 'word2vec.pkl')   # 将单词转为向量
+    data2pickle('bags_train.txt','train_temp.pkl',1)    #
     data2pickle('bags_test.txt','test_temp.pkl',0)
 

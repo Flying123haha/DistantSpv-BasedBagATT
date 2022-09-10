@@ -10,8 +10,8 @@ class CNNwithPool(nn.Module):
 
     def forward(self, x, mask):
 
-        cnn_out = self.cnn(x).squeeze(3)
-        mask = mask[:, :, :cnn_out.size(2)].transpose(0,1)
-        pcnn_out, _ = torch.max(cnn_out.unsqueeze(1) + mask.unsqueeze(2), 3)
+        cnn_out = self.cnn(x).squeeze(3)    # torch.Size([sequence num, 1, 82, 160]) -> torch.Size([sequence num, 230, 80])
+        mask = mask[:, :, :cnn_out.size(2)].transpose(0,1)  # [65，3， 80]    65:sentence的数量，3: wf和两种pf， 80:句子长度
+        pcnn_out, _ = torch.max(cnn_out.unsqueeze(1) + mask.unsqueeze(2), 3)    # torch.Size([65, 3, 230])
 
         return pcnn_out

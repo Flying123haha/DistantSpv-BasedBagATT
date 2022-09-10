@@ -29,7 +29,7 @@ def bags_decompose(data_bags):
 
 def groups_decompose(data_bags):
     bag_label, bag_sent, bag_pos, bag_ldist, bag_rdist, bag_entity, bag_epos, bag_sentlen = [], [], [], [], [], [], [], []
-    for bags in data_bags:
+    for bags in data_bags:  ## bags代表一个关系的句子bag
         data = group_decompose(bags)
         bag_label.append(data[0])
         bag_sent.append(data[1])
@@ -56,13 +56,13 @@ def group_decompose(data_bags):
     return [bag_label, bag_sent, bag_pos, bag_ldist, bag_rdist, bag_entity, bag_epos, bag_sentlen]
 
 def curve(y_scores, y_true, num=2000):
-    order = np.argsort(y_scores)[::-1]
+    order = np.argsort(y_scores)[::-1]  ## 将y_socres有大到小排序得到他们的索引
     guess = 0.
     right = 0.
     target = np.sum(y_true)
     precisions = []
     recalls = []
-    for o in order[:num]:
+    for o in order[:num]:   ## 获取order的前3000位
         guess += 1
         if y_true[o] == 1:
             right += 1
@@ -99,9 +99,9 @@ def eval(model, testset, args):
             temp = [0] * model.num_classes
             for r in test_label[k]:
                 temp[r] = 1
-            total_y.append(temp)
+            total_y.append(temp)    ## total_y 纪录的为lablek的关系
 
-            for l in range(len(test_sents[k])):
+            for l in range(len(test_sents[k])): ## test_sents[k]是一个包中的句子
 
                 total_word.append(test_sents[k][l])
                 allsentlen = len(test_sents[k][l])
@@ -116,7 +116,7 @@ def eval(model, testset, args):
                 total_pcnnmask[2].append(
                     [-10000] * epos[1] + [0] * (sentlen - epos[1]) + [-10000] * (allsentlen - sentlen))
 
-        total_shape.append(total_num)
+        total_shape.append(total_num)   #纪录500个句子包各含有多少句子
 
         total_word = np.array(total_word)
         total_pos1 = np.array(total_pos1)
@@ -130,17 +130,17 @@ def eval(model, testset, args):
         total_pcnnmask = Variable(torch.from_numpy(total_pcnnmask)).cuda().float()
 
         if args.sent_encoding == "pcnn":
-            batch_p = model.decode_PCNN(total_word, total_pos1, total_pos2, total_pcnnmask, total_shape)
+            batch_p = model.decode_PCNN(total_word, total_pos1, total_pos2, total_entity_pos,total_pcnnmask, total_shape)    ## [500, 53] [bag nums, rel nums]
         elif args.sent_encoding == "cnn":
             batch_p = model.decode_CNN(total_word, total_pos1, total_pos2, total_entity_pos, total_shape)
 
         batch_p = batch_p.cpu().data.numpy()
 
-        y_true.append(total_y[:, 1:])
+        y_true.append(total_y[:, 1:])   ## 纪录除了NA 关系的所有关系，[500, 52]
         y_scores.append(batch_p[:, 1:])
 
     y_true = np.concatenate(y_true).reshape(-1)
-    y_scores = np.concatenate(y_scores).reshape(-1)
+    y_scores = np.concatenate(y_scores).reshape(-1) # 转化成一维数组
 
     return y_true, y_scores
 
@@ -152,11 +152,11 @@ def AUC_and_PN(model, datasets, args):
 
     y_true, y_scores = eval(model, testdata, args)
 
-    np.save('result/' + model.name + '_true.npy', y_true)
-    np.save('result/' + model.name + '_scores.npy', y_scores)
+    np.save('result2/' + model.name + '_true.npy', y_true)
+    np.save('result2/' + model.name + '_scores.npy', y_scores)
     recalls, precisions = curve(y_scores, y_true, 3000)
     recalls_01 = recalls[recalls < 0.1]
-    precisions_01 = precisions[recalls < 0.1]
+    precisions_01 = precisions[recalls < 0.1]   # 取得召回率小于0.1的结果
     AUC_01 = auc(recalls_01, precisions_01)
 
     recalls_02 = recalls[recalls < 0.2]
@@ -175,15 +175,15 @@ def AUC_and_PN(model, datasets, args):
 
     print(AUC_01, AUC_02, AUC_03, AUC_04, AUC_all)
 
-    for q, testdata in enumerate([test1, test2, testall]):
+    for q, testdata in enumerate([test1, test2, testall]):  ## 计算测试集的P@100, P@200
 
         y_true, y_scores = eval(model, testdata, args)
 
-        order = np.argsort(-y_scores)
+        order = np.argsort(-y_scores)   ## 将y_score由大到小排列
 
         top100 = order[:100]
         correct_num_100 = 0.0
-        for i in top100:
+        for i in top100:    ## 前100位预测的关系预测的准确率
             if y_true[i] == 1:
                 correct_num_100 += 1.0
         print('P@100: ', correct_num_100 / 100)
@@ -236,10 +236,10 @@ def pretrainModel(model, train_data, datasets, args):
             total_y = []
 
             temp_input = temp_order[i * batch: min(len(train_sents), (i + 1) * batch)]
-            for k in temp_input:
+            for k in temp_input:     # 取50个包一组
                 total_shape.append(total_num)
                 total_num += len(train_sents[k])
-                total_y.append(train_label[k][0])
+                total_y.append(train_label[k][0])   ## 获取train的label
                 for j in range(len(train_sents[k])):
                     total_word.append(train_sents[k][j])
                     allsentlen = len(train_sents[k][j])
@@ -248,7 +248,7 @@ def pretrainModel(model, train_data, datasets, args):
                     total_pos2.append(train_rdist[k][j])
                     total_entity_pos.append(train_epos[k][j])
                     epos = train_epos[k][j]
-                    total_pcnnmask[0].append([0] * epos[0] + [-10000] * (allsentlen - epos[0]))
+                    total_pcnnmask[0].append([0] * epos[0] + [-10000] * (allsentlen - epos[0])) ## pcnnmassk:分别获取pos[0]、pos[0]和pos[1]之间、pos[1]到句子末尾的距离信息
                     total_pcnnmask[1].append(
                         [-10000] * epos[0] + [0] * (epos[1] - epos[0]) + [-10000] * (allsentlen - epos[1]))
                     total_pcnnmask[2].append(
@@ -269,8 +269,8 @@ def pretrainModel(model, train_data, datasets, args):
             y_batch = Variable(torch.from_numpy(total_y)).cuda()
 
             if args.use_RA and args.sent_encoding == "pcnn":
-                loss = model.PCNN_ATTRA(total_word, total_pos1, total_pos2,
-                                        total_pcnnmask, total_shape, y_batch)
+                loss = model.PCNN_ATTRA(total_word, total_pos1, total_pos2, total_entity_pos,
+                                        total_pcnnmask, total_shape, y_batch)   ##根据包的pf1,pf2和seq向量获取包间信息，获得精准某个包内的推测
             if args.use_RA and args.sent_encoding == "cnn":
                 loss = model.CNN_ATTRA(total_word, total_pos1, total_pos2,
                                        total_pcnnmask, total_shape, y_batch)
@@ -287,10 +287,10 @@ def pretrainModel(model, train_data, datasets, args):
             optimizer.step()
 
             if num % 10000 == 0:
-                AUC_and_PN(model, datasets, args)
+                AUC_and_PN(model, datasets, args)   ## 计算得出最新的P@100-300准确率
                 model.train()
 
-    torch.save({'model': model.state_dict()}, 'result/' + model.name + '.model')
+    torch.save({'model': model.state_dict()}, 'result2/' + model.name + '2.model')
 
     return model
 
@@ -306,8 +306,8 @@ def trainModel(model, train_data, datasets, args):
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     print("Training:", str(now))
 
-    data_length = np.array([len(t) for t in train_label])
-    p_rel = data_length / np.sum(data_length)
+    data_length = np.array([len(t) for t in train_label]) # 纪录每种关系的数量
+    p_rel = data_length / np.sum(data_length)   ##
     for num in range(1, args.step_num):
 
         rel_order = np.random.choice(len(p_rel), batch[1], p=p_rel)
@@ -323,13 +323,13 @@ def trainModel(model, train_data, datasets, args):
         total_shape = []
         total_num = 0
 
-        for rel in rel_order:
-            temp_order = np.random.choice(len(train_label[rel]), 1)
+        for rel in rel_order:   ## 随机抽取一个关系进行训练，也即是随机抽取10个关系，每个关系随机抽取一个组，每个组有5个包
+            temp_order = np.random.choice(len(train_label[rel]), 1) ## 随机抽取关系中的一个包组
 
             for k in temp_order:
                 for i in range(batch[0]):
                     total_shape.append(total_num)
-                    total_num += len(train_sents[rel][k][i])
+                    total_num += len(train_sents[rel][k][i])    # rel-关系，k-第几个包组， i-第几个组
                     for j in range(len(train_sents[rel][k][i])):
                         total_word.append(train_sents[rel][k][i][j])
                         allsentlen = len(train_sents[rel][k][i][j])
@@ -352,12 +352,14 @@ def trainModel(model, train_data, datasets, args):
         total_word = Variable(torch.from_numpy(total_word)).cuda()
         total_pos1 = Variable(torch.from_numpy(total_pos1)).cuda()
         total_pos2 = Variable(torch.from_numpy(total_pos2)).cuda()
-        total_pcnnmask = Variable(torch.from_numpy(total_pcnnmask)).cuda().float()
-        y_batch = Variable(torch.from_numpy(total_y)).cuda().unsqueeze(1).expand(batch[1],batch[0]).contiguous()
+        total_pcnnmask = Variable(torch.from_numpy(total_pcnnmask)).cuda().float()  # [3, sequence num, sentence len]
+        y_batch = Variable(torch.from_numpy(total_y)).cuda().unsqueeze(1).expand(batch[1],batch[0]).contiguous()    #[10,5]
 
         if args.use_RA and args.sent_encoding == "pcnn":
-            loss = model.PCNN_ATTRA_BAGATT(total_word, total_pos1, total_pos2,
-                                           total_pcnnmask, total_shape, y_batch, batch)
+            # loss = model.PCNN_ATTRA_BAGATT2(total_word, total_pos1, total_pos2,
+            #                                total_pcnnmask, total_shape, y_batch, batch)     ## 比较一个包组(y_batch [10,5]的loss calculate the loss between y_predicte by
+            loss = model.PCNN_ATTRA_BAGATT2(total_word, total_pos1, total_pos2,total_entity_pos,
+                                            total_pcnnmask, total_shape, y_batch, batch)
         if args.use_RA and args.sent_encoding == "cnn":
             loss = model.CNN_ATTRA_BAGATT(total_word, total_pos1, total_pos2,
                                           total_pcnnmask, total_shape, y_batch, batch)
@@ -380,7 +382,7 @@ def trainModel(model, train_data, datasets, args):
 
     model.train()
 
-    torch.save({'model': model.state_dict()}, 'result/' + model.name + '.model')
+    torch.save({'model': model.state_dict()}, 'result2/' + model.name + '2.model')
 
 
 if __name__ == "__main__":
@@ -408,7 +410,7 @@ if __name__ == "__main__":
     parser.add_argument('--use_RA', action='store_true', help='use relation-aware intra-bag attention or not')
     parser.add_argument('--modelname', type=str, default="PCNN_ATTRA", help='model name')
     parser.add_argument('--pretrain', action='store_true', help='pre-training or not')
-    parser.add_argument('--modelpath', type=str, default="result/PCNN_ATTRA.model", help='path to model file')
+    parser.add_argument('--modelpath', type=str, default="result2/PCNN_ATTRA2.model", help='path to model file')
 
     args = parser.parse_args()
     print(args)
@@ -437,10 +439,11 @@ if __name__ == "__main__":
     model = Model(word_length=len(Wv), feature_length=len(PF1), cnn_layers=args.cnn_filter,
                   kernel_size=(args.cnn_kernel, args.word_embedding_size+2*args.PF_size),
                   Wv=Wv, pf1=PF1, pf2=PF2, num_classes=args.num_classes, name=args.modelname)
-    model.cuda()
+    device = torch.device("cuda")
+    model.to(device)
 
     if args.pretrain:
-        model = pretrainModel(model=model, train_data=pretrain_data, datasets=datasets, args=args)
+        model = pretrainModel(model=model, train_data=pretrain_data, datasets=datasets, args=args)  ## 预训练intra-bag
     else:
         config = torch.load(args.modelpath)
         model.load_state_dict(config['model'], strict=False)
